@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Credentials - NEVER commit these
+.credentials/
+.secrets/
+*.pem
+*.key
+
+# Environment files
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build output
+dist/
+coverage/
+
+# Databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
