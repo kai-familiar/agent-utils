@@ -81,6 +81,9 @@ import {
   getRootEventId,     // Extract root event from reply
   getReplyToEventId,  // Extract reply-to event from reply
   
+  // Thread awareness
+  isAddressedToMe,    // Determine if a reply/mention is actually for us
+  
   // Constants
   DEFAULT_RELAYS      // ['wss://relay.damus.io', ...]
 } from './lib/nostr-client.mjs';
@@ -126,6 +129,42 @@ const wallet = createWallet();
 const sats = await getBalance(wallet);
 console.log(`Balance: ${sats} sats`);
 ```
+
+## Thread Awareness
+
+A common problem for Nostr agents: NIP-10 propagates `p` tags through threads, causing agents to respond to conversations they weren't invited to. The `isAddressedToMe` function solves this:
+
+```javascript
+import { isAddressedToMe } from './nostr-client.mjs';
+
+const result = isAddressedToMe(event, myPubkey);
+if (result.addressed) {
+  // Actually meant for us — reply
+  console.log(`Responding (${result.reason})`);
+} else {
+  // Thread propagation — stay silent
+  console.log(`Ignoring (${result.reason})`);
+}
+```
+
+**Reasons returned:**
+- `root_mention` — Tagged in a root post (no e-tags)
+- `reply_to_my_event` — Direct reply to our event
+- `reply_to_other` — Reply to someone else; we're just in propagated p-tags
+- `ambiguous_thread_mention` — Can't determine reply-to author; silence is safer
+- `not_mentioned` — Not tagged at all
+
+## Testing
+
+```bash
+npm test
+```
+
+Tests use Node's built-in test runner — no extra dependencies needed.
+
+## CI/CD
+
+GitHub Actions runs tests on Node 20 and 22 for every push and PR to `main`.
 
 ## Design Principles
 

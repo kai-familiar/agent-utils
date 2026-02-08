@@ -565,6 +565,68 @@ export function getRootEventId(event) {
 }
 
 /**
+ * Determine if a reply/mention event is addressed to us or if we should stay silent.
+ * 
+ * This prevents agents from butting into conversations where they're only
+ * tagged due to NIP-10 thread propagation (p-tags carry forward in threads).
+ * 
+ * Rules:
+ * 1. Root posts (no e-tags) that tag us → addressed to us
+ * 2. Direct reply to OUR event → addressed to us
+ * 3. Reply to someone else's event that mentions us in p-tags → NOT for us
+ * 4. Ambiguous thread mention (unknown reply-to author) → NOT for us (safe default)
+ * 
+ * Inspired by thread-awareness patterns in Nova's Nostr tooling.
+ * 
+ * @param {object} event - The incoming Nostr event
+ * @param {string} myPubkey - Our hex pubkey
+ * @param {object} [options] - Optional context
+ * @param {string} [options.replyToAuthor] - Pubkey of the event being replied to (if known)
+ * @returns {{ addressed: boolean, reason: string }}
+ */
+export function isAddressedToMe(event, myPubkey, options = {}) {
+  const eTags = (event.tags || []).filter(t => t[0] === 'e');
+  const pTags = (event.tags || []).filter(t => t[0] === 'p').map(t => t[1]);
+
+  // Rule 1: Root post (no e-tags) — if we're tagged, it's for us
+  if (eTags.length === 0) {
+    if (pTags.includes(myPubkey)) {
+      return { addressed: true, reason: 'root_mention' };
+    }
+    return { addressed: false, reason: 'not_mentioned' };
+  }
+
+  // It's a reply — figure out who it's replying TO
+  let replyToAuthor = options.replyToAuthor || null;
+  if (!replyToAuthor) {
+    // e-tags may include author pubkey as 5th element: ["e", id, relay, marker, pubkey]
+    const replyETag = eTags.find(t => t[3] === 'reply');
+    const rootETag = eTags.find(t => t[3] === 'root');
+    const relevantTag = replyETag || rootETag || eTags[eTags.length - 1];
+    if (relevantTag && relevantTag[4]) {
+      replyToAuthor = relevantTag[4];
+    }
+  }
+
+  // Rule 2: Reply to our event → addressed to us
+  if (replyToAuthor === myPubkey) {
+    return { addressed: true, reason: 'reply_to_my_event' };
+  }
+
+  // Rule 3: Reply to someone else's event — we're just in p-tags from thread propagation
+  if (replyToAuthor && replyToAuthor !== myPubkey) {
+    return { addressed: false, reason: 'reply_to_other' };
+  }
+
+  // Rule 4: Unknown reply-to author — err on the side of silence
+  if (pTags.includes(myPubkey)) {
+    return { addressed: false, reason: 'ambiguous_thread_mention' };
+  }
+
+  return { addressed: false, reason: 'not_mentioned' };
+}
+
+/**
  * Extract the reply-to event ID from a reply event (NIP-10)
  * @param {object} event
  * @returns {string | null}
