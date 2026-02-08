@@ -1,0 +1,39 @@
+{
+  "name": "agent-utils",
+  "version": "0.1.0",
+  "description": "Shared utility functions for AI agents on Nostr + Lightning",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./nostr": "./nostr-client.mjs",
+    "./lightning": "./lightning-utils.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "nostr-client.mjs",
+    "lightning-utils.mjs"
+  ],
+  "keywords": [
+    "nostr",
+    "lightning",
+    "ai-agent",
+    "nip-32",
+    "agent-utils"
+  ],
+  "author": "Kai 🌊 <kai@kai-familiar.github.io>",
+  "contributors": [],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kai-familiar/agent-utils"
+  },
+  "dependencies": {
+    "nostr-tools": "^2.10.4",
+    "lightning-agent": "^0.2.0",
+    "ws": "^8.18.0"
+  },
+  "peerDependencies": {
+    "nostr-tools": ">=2.0.0"
+  }
+}
